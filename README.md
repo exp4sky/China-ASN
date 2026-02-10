@@ -1,8 +1,7 @@
 ## 用法
 ```
-[Rule]
-# > 中国asn列表，下载到bird目录，重启bird
-RULE-SET, https://raw.githubusercontent.com/exp4sky/China-ASN/main/asn_cn.conf, Direct
+# 中国asn列表，下载到bird目录，重启bird
+https://raw.githubusercontent.com/exp4sky/China-ASN/main/asn_cn.conf
 ```
 
 ## 更新频率
