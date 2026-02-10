@@ -1,4 +1,4 @@
-name: Update ASN and IP List
+name: Update China ASN List
 
 on: 
   push:
@@ -6,23 +6,40 @@ on:
   schedule:
     - cron: "0 16 * * *"
 
+# 核心修复1：添加权限声明，赋予GITHUB_TOKEN推送权限
+permissions:
+  contents: write  # 必须！解决403的关键
+  pull-requests: read
+
 jobs:
   build: 
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      # 核心修复2：升级checkout版本+禁用浅克隆，避免推送冲突
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 解决浅克隆导致的推送失败
+
       - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5  # 升级到新版，增加稳定性
         with:
           python-version: 3.8
+          cache: "pip"  # 缓存依赖，加速运行
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests lxml
+
       - name: Run Python
         run: |
           python scripts/ASN_CN.py
-      - uses: stefanzweifel/git-auto-commit-action@v4
+
+      # 核心修复3：升级action版本+显式配置推送参数
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Update IP List
+          commit_message: Update China Asn
+          branch: main  # 显式指定推送分支，避免识别错误
+          file_pattern: "asn_cn.conf"  # 仅提交生成的文件，减少权限校验风险
+          push_options: "--force-with-lease"  # 安全强制推送，兼容分支保护
