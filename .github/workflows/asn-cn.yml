@@ -2,8 +2,8 @@ name: Update China Asn List
 on: 
   push:
   workflow_dispatch:
-  schedule:
-    - cron: "0 16 * * *"
+schedule:
+  - cron: "0 16 * * *"  # 北京时间 00:00（UTC+8）触发
 
 # 解决403权限问题的核心配置
 permissions:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   build: 
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # 任务超时15分钟自动终止
 
     steps:
       - uses: actions/checkout@v4
