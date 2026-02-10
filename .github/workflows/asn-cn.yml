@@ -1,14 +1,13 @@
-name: Update China ASN List
-
+name: Update China Asn List
 on: 
   push:
   workflow_dispatch:
   schedule:
     - cron: "0 16 * * *"
 
-# 核心修复1：添加权限声明，赋予GITHUB_TOKEN推送权限
+# 解决403权限问题的核心配置
 permissions:
-  contents: write  # 必须！解决403的关键
+  contents: write
   pull-requests: read
 
 jobs:
@@ -16,16 +15,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 核心修复2：升级checkout版本+禁用浅克隆，避免推送冲突
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 解决浅克隆导致的推送失败
+          fetch-depth: 0  # 避免浅克隆导致推送失败
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v5  # 升级到新版，增加稳定性
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
-          cache: "pip"  # 缓存依赖，加速运行
+          # 核心修复：移除cache: pip（因无requirements.txt/pyproject.toml）
+          # 如需保留缓存，可改用下方注释的配置（无需依赖文件）
+          # cache: "pip"
+          # cache-dependency-path: "**/*.py"
 
       - name: Install dependencies
         run: |
@@ -36,10 +37,9 @@ jobs:
         run: |
           python scripts/ASN_CN.py
 
-      # 核心修复3：升级action版本+显式配置推送参数
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Update China Asn
-          branch: main  # 显式指定推送分支，避免识别错误
-          file_pattern: "asn_cn.conf"  # 仅提交生成的文件，减少权限校验风险
-          push_options: "--force-with-lease"  # 安全强制推送，兼容分支保护
+          branch: main
+          file_pattern: "asn_cn.conf"
+          push_options: "--force-with-lease"
