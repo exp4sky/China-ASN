@@ -1,10 +1,10 @@
 name: Update China Asn List
+
 on: 
   push:
   workflow_dispatch:
-schedule:
-   concurrency:
-      - cron: "0 16 * * *"  # 北京时间 00:00（UTC+8）触发
+  schedule:
+    - cron: "0 16 * * *"  # 北京时间 00:00（UTC+8）触发
 
 # 解决403权限问题的核心配置
 permissions:
