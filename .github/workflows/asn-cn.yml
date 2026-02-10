@@ -14,7 +14,7 @@ permissions:
 jobs:
   build: 
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # 任务超时15分钟自动终止
+    timeout-minutes: 7  # 任务超时7分钟自动终止
 
     steps:
       - uses: actions/checkout@v4
