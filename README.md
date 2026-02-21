@@ -4,6 +4,12 @@
 https://raw.githubusercontent.com/exp4sky/China-ASN/main/asn_cn.conf
 ```
 
+## 如果没代理使用cdn
+```
+# 中国asn列表，下载到bird目录，重启bird
+https://cdn.jsdelivr.net/gh/exp4sky/China-ASN/asn_cn.conf
+```
+
 ## 更新频率
 - 每天更新
 ## 定期生成bird 中国的 asn_cn.conf配置文件
