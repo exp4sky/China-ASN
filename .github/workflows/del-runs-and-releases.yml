@@ -1,0 +1,113 @@
+name: del runs and releases
+# 触发规则：每月1号自动执行 + 支持手动触发
+on:
+  schedule:
+    - cron: '0 12 */2 * *' # 每2天执行一次 
+  workflow_dispatch:
+    inputs:
+      retain_days:
+        description: '保留最近N天的记录，超出将被删除'
+        required: true
+        default: '30'
+
+# 核心：授予 Token 必要的删除权限（必须配置，否则执行失败）
+permissions:
+  actions: write
+  contents: write
+  deployments: read
+
+jobs:
+  clean-resources:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 清理过期 Workflow 运行记录
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            // 兼容逻辑：手动触发取输入值，定时触发固定保留30天
+            let retainDays = context.eventName === 'workflow_dispatch' 
+              ? Number(context.payload.inputs.retain_days)
+              : 30;
+            const expireTime = Date.now() - retainDays * 24 * 60 * 60 * 1000;
+
+            console.log(`仓库：${owner}/${repo}`);
+            console.log(`保留天数：${retainDays} 天`);
+            console.log(`过期时间戳：${expireTime}`);
+
+            try {
+              // 分页获取所有工作流运行记录
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+                owner,
+                repo
+              });
+
+              // 过滤：仅删除 已完成 + 超期 的运行记录
+              const expiredRuns = runs.filter(run => {
+                return run.status === 'completed' && new Date(run.created_at).getTime() < expireTime;
+              });
+
+              console.log(`符合删除条件的运行记录数：${expiredRuns.length}`);
+
+              // 批量删除
+              for (const run of expiredRuns) {
+                console.log(`删除运行记录 ID: ${run.id}`);
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id
+                });
+              }
+              console.log('✅ Workflow 运行记录清理完成');
+            } catch (error) {
+              console.error('❌ 清理运行记录失败：', error.message);
+              throw error;
+            }
+
+      - name: 清理过期 Releases 及对应 Git Tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            // 与上方保持一致的保留天数逻辑
+            let retainDays = context.eventName === 'workflow_dispatch' 
+              ? Number(context.payload.inputs.retain_days)
+              : 30;
+            const expireTime = Date.now() - retainDays * 24 * 60 * 60 * 1000;
+
+            try {
+              // 获取所有 Releases
+              const releases = await github.paginate(github.rest.repos.listReleases, {
+                owner,
+                repo
+              });
+
+              // 过滤超期 Releases
+              const expiredReleases = releases.filter(release => {
+                return new Date(release.published_at).getTime() < expireTime;
+              });
+
+              console.log(`符合删除条件的 Releases 数：${expiredReleases.length}`);
+
+              // 先删除 Release，再删除对应 Git Tag
+              for (const release of expiredReleases) {
+                console.log(`删除 Release: ${release.name} (ID: ${release.id})`);
+                // 删除 Release
+                await github.rest.repos.deleteRelease({
+                  owner,
+                  repo,
+                  release_id: release.id
+                });
+                // 删除关联的 Git Tag（修复原有脚本残留Tag的问题）
+                console.log(`删除关联Tag: ${release.tag_name}`);
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `tags/${release.tag_name}`
+                });
+              }
+              console.log('✅ Releases 与 Git Tag 清理完成');
+            } catch (error) {
+              console.error('❌ 清理 Releases 失败：', error.message);
+              throw error;
+            }
