@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 7           # 任务超时7分钟自动终止
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0         # 避免浅克隆导致推送失败
           persist-credentials: true
